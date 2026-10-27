@@ -1,6 +1,6 @@
 # Proxmox HA Homelab — `clusterone`
 
-A three-node [Proxmox VE](https://www.proxmox.com/) 9.2 cluster built from recycled consumer PCs, running a public portfolio, a self-hosted WireGuard VPN, network-wide DNS filtering, and dynamic-DNS automation — with high availability on the services that matter, despite heterogeneous hardware and no shared storage.
+A three-node [Proxmox VE](https://www.proxmox.com/) 9.2 cluster built from recycled consumer PCs, running a public portfolio, a self-hosted WireGuard VPN, and dynamic-DNS automation — with high availability on the services that matter, despite heterogeneous hardware and no shared storage.
 
 This repo documents **what I built and, more importantly, why**. The hardware is modest on purpose; the interesting part is the set of engineering decisions that make a reliable system out of three mismatched desktops behind a locked-down ISP router on a dynamic IP.
 
@@ -30,7 +30,7 @@ flowchart TB
             repl["HA replicas:<br/>CT 100 + CT 101"]
         end
         subgraph n3["pveacer · 4 GB · ext4"]
-            adg["CT 102 · AdGuard Home<br/>filtering DNS<br/>10.77.0.102"]
+            quorum["Quorum vote<br/>+ spare capacity"]
         end
     end
 
@@ -39,7 +39,6 @@ flowchart TB
     clients -->|"WireGuard UDP 51820"| router --> vpn
     vpn -. "DDNS: keeps vpn.mosearc.eu current" .-> cf
     n1 <-. "ZFS replication every 15 min" .-> n2
-    adg -. "filtered upstream (DoH)" .-> cf
 
     classDef zfs fill:#1b4965,stroke:#5fa8d3,color:#fff;
     classDef ext fill:#5c4d3c,stroke:#c9a66b,color:#fff;
@@ -57,7 +56,7 @@ flowchart TB
 |------|----------|---------|------|-------|
 | **pvedell** | i7 (7th gen), 16 GB, 2 TB SSD | ZFS | Primary workhorse | VPN (CT 100), Portfolio (CT 101) |
 | **pveasus** | i5/i7, 8 GB, 250 GB SSD | ZFS | HA replication target | Standby replicas of CT 100 & 101 |
-| **pveacer** | i5 (6th gen), 4 GB, 250 GB SSD | ext4 / LVM | Quorum vote + light services | AdGuard Home (CT 102) |
+| **pveacer** | i5 (6th gen), 4 GB, 250 GB SSD | ext4 / LVM | Quorum vote + spare capacity | — |
 
 External 2 TB USB disk is used as an offline/rotational backup target.
 
@@ -69,7 +68,6 @@ External 2 TB USB disk is used as an offline/rotational backup target.
 
 - **Portfolio** — static/web portfolio served from CT 101, exposed to the internet through a Cloudflare proxied record (no inbound ports opened on the router).
 - **WireGuard VPN** — [wg-easy](https://github.com/wg-easy/wg-easy) v15 (Docker-in-LXC) in CT 100. Provides full remote access to the cluster and LAN from anywhere. Reached at `vpn.mosearc.eu`.
-- **AdGuard Home** — network-wide DNS with ad/tracker filtering, plus local-name resolution (`*.lan`) for the cluster, in CT 102.
 - **cloudflare-ddns** — [favonia/cloudflare-ddns](https://github.com/favonia/cloudflare-ddns) keeps `vpn.mosearc.eu` pointed at the home dynamic IP.
 - **Security monitoring (planned)** — Wazuh (host/endpoint) + Suricata/Snort (network IDS). See [`docs/05-security-stack.md`](docs/05-security-stack.md).
 
@@ -84,7 +82,6 @@ The hardware forced trade-offs. These are the choices I'd defend in an interview
 - **HA only on the light, near-stateless services** (VPN + portfolio) with **failback disabled** — on aging hardware, auto-failback causes flapping when a recovered node is unstable. Containers fail over once and stay put until I move them back deliberately.
 - **Cloudflare proxy for the portfolio, not port-forwarding.** With a dynamic IP behind a locked-down ISP router, the orange-cloud proxy hides the home IP, provides free HTTPS, and needs no open ports. DDNS keeps the origin reachable.
 - **DDNS, not a static IP.** A scoped Cloudflare API token + a hardened updater container keep the VPN endpoint resolvable through IP changes — the record is kept **unproxied** because WireGuard is UDP and can't traverse the HTTP proxy.
-- **AdGuard accepts a single point of failure** (it's on the non-HA node) mitigated by a secondary resolver in DHCP. DNS for the whole network on one 4 GB node is a deliberate, documented risk with a fallback.
 - **LXC over VMs everywhere possible** — far lighter on RAM, which is the binding constraint across the whole cluster.
 
 More detail, including the mistakes and how I debugged them, in [`docs/06-lessons-learned.md`](docs/06-lessons-learned.md).
@@ -107,8 +104,7 @@ More detail, including the mistakes and how I debugged them, in [`docs/06-lesson
     ├── wg-easy/docker-compose.yml
     ├── cloudflare-ddns/docker-compose.yml
     ├── cloudflare-ddns/.env.example
-    ├── lxc/100-vpn.conf.example
-    └── adguard/README.md
+    └── lxc/100-vpn.conf.example
 ```
 
 ## A note on secrets

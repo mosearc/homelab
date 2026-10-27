@@ -30,7 +30,7 @@ v15 is a rewrite — most older guides are wrong for it:
 - **Debian laptop:** `apt install wireguard`, drop the config at `/etc/wireguard/wg0.conf`, `wg-quick up wg0`.
   - Hit the classic `resolvconf: command not found` on bring-up — fixed with `apt install openresolv` (the config carries a `DNS =` line that wg-quick applies via resolvconf).
   - For a GUI toggle: `nmcli connection import type wireguard file /etc/wireguard/wg0.conf` puts it in the NetworkManager applet. Don't let both NetworkManager and `wg-quick`/systemd manage the same interface.
-- **Client DNS** is set to AdGuard (`10.77.0.102`) so remote devices filter ads and resolve `.lan` names. In v15 this is per-client in the admin panel, and existing clients must be **re-issued** to pick up a change.
+- **Client DNS** is set per-client in the wg-easy admin panel (in v15 this is in the UI, and existing clients must be **re-issued** to pick up a change). Currently points at a public resolver; if an internal filtering resolver is added later, this is where VPN clients would be pointed at it.
 
 ## Full vs split tunnel
 
