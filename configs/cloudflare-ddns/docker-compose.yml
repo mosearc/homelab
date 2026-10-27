@@ -1,0 +1,30 @@
+# cloudflare-ddns (favonia) — keeps vpn.mosearc.eu pointed at the home dynamic IP.
+# Runs as Docker-in-LXC inside CT 100, alongside wg-easy.
+#
+# Notes:
+#   - PROXIED=false is deliberate: the VPN record must stay "DNS only" (grey
+#     cloud) because WireGuard is UDP and can't traverse Cloudflare's HTTP proxy.
+#     The updater re-enforces this on every run.
+#   - Since v1.13.0 the image drops privileges via Docker's `user:` — no PUID/PGID.
+#   - Hardened: read-only rootfs, all caps dropped, no-new-privileges.
+#   - API token comes from an untracked .env file (see .env.example).
+#     Create it in Cloudflare with the "Edit zone DNS" template, scoped to the
+#     mosearc.eu zone only.
+
+services:
+  cloudflare-ddns:
+    image: favonia/cloudflare-ddns:1
+    container_name: cloudflare-ddns
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    cap_drop:
+      - all
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+      - DOMAINS=vpn.mosearc.eu
+      - PROXIED=false
+      - IP6_PROVIDER=none
+      - UPDATE_CRON=@every 5m

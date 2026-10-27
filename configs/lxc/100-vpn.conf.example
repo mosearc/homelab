@@ -1,0 +1,16 @@
+# Example additions to /etc/pve/lxc/100.conf  (the WireGuard/VPN container).
+#
+# These two lines grant an UNPRIVILEGED LXC access to /dev/net/tun, which the
+# WireGuard tooling needs. They use cgroup2 (correct for Proxmox VE 9).
+#
+# Because /etc/pve is the cluster filesystem (pmxcfs), this file is synced to
+# every node automatically — so the device access is already present on the
+# failover node, and the VPN comes back up after an HA failover with no manual
+# per-node setup. (The in-kernel `wireguard` module is also loaded on both ZFS
+# hosts via /etc/modules-load.d so it's always available.)
+#
+# The container is created unprivileged with the `nesting=1,keyctl=1` features
+# (Docker-in-LXC needs both).
+
+lxc.cgroup2.devices.allow: c 10:200 rwm
+lxc.mount.entry: /dev/net dev/net none bind,create=dir

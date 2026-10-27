@@ -1,0 +1,29 @@
+# Secrets — never commit these
+.env
+*.env
+!*.env.example
+*.key
+*.pem
+*_private*
+wg0.conf
+*.conf.real
+
+# WireGuard keys / peer data
+wireguard-data/
+etc_wireguard/
+
+# AdGuard runtime config (contains password hash, client details)
+AdGuardHome.yaml
+conf/
+data/
+
+# Cloudflare
+*token*
+!*token*example*
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
