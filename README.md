@@ -14,8 +14,9 @@ This repo documents **what I built and, more importantly, why**. The hardware is
 flowchart TB
     subgraph net[Internet]
         users[Site visitors]
-        cf[Cloudflare<br/>Authoritative DNS + Proxy]
+        cf[Cloudflare<br/>Authoritative DNS]
         clients[WireGuard clients<br/>phone / laptop]
+        gh[GitHub<br/>site repo · CI/CD]
     end
 
     router["TIM Technicolor router<br/>10.77.0.1 · dynamic public IP<br/>(IPv4 only)"]
@@ -24,7 +25,7 @@ flowchart TB
         direction TB
         subgraph n1["pvedell · primary · 16 GB · ZFS"]
             vpn["CT 100 · wg-easy (v15)<br/>WireGuard + cloudflare-ddns<br/>10.77.0.100"]
-            port["CT 101 · Portfolio<br/>web server<br/>10.77.0.101"]
+            port["CT 101 · Portfolio<br/>Caddy + Let's Encrypt<br/>CI/CD runner · 10.77.0.101"]
         end
         subgraph n2["pveasus · 8 GB · ZFS"]
             repl["HA replicas:<br/>CT 100 + CT 101"]
@@ -34,10 +35,11 @@ flowchart TB
         end
     end
 
-    users --> cf
-    cf -->|"proxied HTTPS (orange cloud)"| router --> port
+    users -->|"resolve name"| cf
+    users ==>|"HTTPS direct · :80/:443"| router --> port
     clients -->|"WireGuard UDP 51820"| router --> vpn
-    vpn -. "DDNS: keeps vpn.mosearc.eu current" .-> cf
+    gh -. "runner pulls & deploys" .-> port
+    vpn -. "DDNS: keeps *.mosearc.eu current" .-> cf
     n1 <-. "ZFS replication every 15 min" .-> n2
 
     classDef zfs fill:#1b4965,stroke:#5fa8d3,color:#fff;
@@ -66,7 +68,7 @@ External 2 TB USB disk is used as an offline/rotational backup target.
 
 ## Services
 
-- **Portfolio** — static/web portfolio served from CT 101, exposed to the internet through a Cloudflare proxied record (no inbound ports opened on the router).
+- **Portfolio** — static site served by Caddy from CT 101, exposed directly via router port-forward (80/443) with automatic Let's Encrypt TLS. Deployed by a self-hosted GitHub Actions runner on every push to `main`. Live at `mosearc.eu`.
 - **WireGuard VPN** — [wg-easy](https://github.com/wg-easy/wg-easy) v15 (Docker-in-LXC) in CT 100. Provides full remote access to the cluster and LAN from anywhere. Reached at `vpn.mosearc.eu`.
 - **cloudflare-ddns** — [favonia/cloudflare-ddns](https://github.com/favonia/cloudflare-ddns) keeps `vpn.mosearc.eu` pointed at the home dynamic IP.
 - **Security monitoring (planned)** — Wazuh (host/endpoint) + Suricata/Snort (network IDS). See [`docs/05-security-stack.md`](docs/05-security-stack.md).
@@ -80,7 +82,7 @@ The hardware forced trade-offs. These are the choices I'd defend in an interview
 - **Cluster for quorum and management, not Ceph/HA storage.** Three nodes give a clean majority vote (survive one node down). Ceph was a non-starter — the 4 GB node can't run it, and there's no fast storage network. HA instead rides on **ZFS replication**, which fits the hardware.
 - **ZFS on the two capable nodes, ext4 on the 4 GB node.** ZFS enables replication and snapshots where it's needed; on the RAM-starved node its ARC cache would only compete with the workload, so ext4/LVM there.
 - **HA only on the light, near-stateless services** (VPN + portfolio) with **failback disabled** — on aging hardware, auto-failback causes flapping when a recovered node is unstable. Containers fail over once and stay put until I move them back deliberately.
-- **Cloudflare proxy for the portfolio, not port-forwarding.** With a dynamic IP behind a locked-down ISP router, the orange-cloud proxy hides the home IP, provides free HTTPS, and needs no open ports. DDNS keeps the origin reachable.
+- **Direct self-hosted exposure for the portfolio (not a proxy or tunnel).** `mosearc.eu` is a grey-cloud DNS record pointing at the home IP; the router forwards 80/443 to the web container and Caddy obtains Let's Encrypt certs itself. Keeps the whole path self-hosted and — unlike a Cloudflare tunnel, which would encapsulate inbound traffic — leaves edge traffic inspectable for a future IDS/IPS. Trade-off: the home IP is public. (A Cloudflare tunnel was the considered alternative; chosen against, deliberately.)
 - **DDNS, not a static IP.** A scoped Cloudflare API token + a hardened updater container keep the VPN endpoint resolvable through IP changes — the record is kept **unproxied** because WireGuard is UDP and can't traverse the HTTP proxy.
 - **LXC over VMs everywhere possible** — far lighter on RAM, which is the binding constraint across the whole cluster.
 
