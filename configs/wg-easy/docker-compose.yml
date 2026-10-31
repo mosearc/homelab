@@ -1,4 +1,4 @@
-# wg-easy v15 — WireGuard VPN with web admin UI
+# wg-easy v15: WireGuard VPN with web admin UI
 # Runs as Docker-in-LXC inside CT 100 (unprivileged, nesting + keyctl enabled).
 #
 # v15 notes:
@@ -23,7 +23,7 @@ services:
       - /lib/modules:/lib/modules:ro
     ports:
       - "51820:51820/udp"   # WireGuard tunnel (port-forwarded on the router)
-      - "51821:51821/tcp"   # Admin UI — LAN only
+      - "51821:51821/tcp"   # Admin UI, LAN only
     cap_add:
       - NET_ADMIN
       - SYS_MODULE

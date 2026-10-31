@@ -4,7 +4,7 @@
 # WireGuard tooling needs. They use cgroup2 (correct for Proxmox VE 9).
 #
 # Because /etc/pve is the cluster filesystem (pmxcfs), this file is synced to
-# every node automatically — so the device access is already present on the
+# every node automatically, so the device access is already present on the
 # failover node, and the VPN comes back up after an HA failover with no manual
 # per-node setup. (The in-kernel `wireguard` module is also loaded on both ZFS
 # hosts via /etc/modules-load.d so it's always available.)

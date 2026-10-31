@@ -2,11 +2,11 @@
 
 ## The constraints
 
-- **Dynamic public IP** (IPv4 only — IPv6 disabled at the ISP router).
+- **Dynamic public IP** (IPv4 only; IPv6 disabled at the ISP router).
 - **TIM Technicolor router**, consumer-grade and locked down: limited DHCP/DNS controls hidden behind an "advanced" toggle, no port-mirroring, no custom firmware.
 - LAN: `10.77.0.0/24`, gateway `10.77.0.1`.
 
-Early on I suspected CGNAT (which would rule out port-forwarding), but testing confirmed a real, routable — if dynamic — public IP. That single fact shaped the whole exposure strategy.
+Early on I suspected CGNAT (which would rule out port-forwarding), but testing confirmed a real, routable (if dynamic) public IP. That single fact shaped the whole exposure strategy.
 
 ## Address plan
 
@@ -21,7 +21,7 @@ These sit outside the router's DHCP pool so nothing else is handed the same addr
 
 ## Exposure strategy: direct, self-hosted
 
-Both public services resolve (via Cloudflare DNS) straight to the home IP as **grey-cloud** records — nothing is proxied, so traffic reaches the cluster directly:
+Both public services resolve (via Cloudflare DNS) straight to the home IP as **grey-cloud** records. Nothing is proxied, so traffic reaches the cluster directly:
 
 - **Portfolio → grey-cloud A record + port-forward 80/443.** Caddy in CT 101 obtains its own Let's Encrypt certificate. Chosen over a Cloudflare tunnel/proxy deliberately: it keeps the path fully self-hosted and leaves inbound web traffic inspectable at the edge for a future IDS/IPS (a tunnel would encapsulate it). Trade-off accepted: the home IP is public.
 - **VPN → grey-cloud A record + port-forward UDP 51820.** WireGuard is UDP and couldn't be proxied anyway, so `vpn.mosearc.eu` resolves straight to home.
@@ -37,6 +37,6 @@ On this **IPv4-only** network the default IP-detection method (`cloudflare.trace
 Clients currently resolve through the router / public resolvers; there is no
 internal filtering resolver in the cluster at the moment. A filtering + local-name
 resolver (AdGuard Home or Pi-hole on the `pveacer` node) is a candidate future
-addition — the trade-off to weigh there is that it would be a network-wide single
+addition. The trade-off to weigh there is that it would be a network-wide single
 point of failure on the non-HA ext4 node, so it would need a fallback resolver in
 DHCP and the Proxmox hosts kept on a separate public resolver.

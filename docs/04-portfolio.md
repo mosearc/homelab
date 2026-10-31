@@ -4,13 +4,13 @@ The public site at [mosearc.eu](https://mosearc.eu), served from **CT 101** (on 
 
 ## Exposure: direct, with Caddy + Let's Encrypt
 
-Chosen over a Cloudflare tunnel/proxy on purpose — see [`02-networking-dns.md`](02-networking-dns.md) for the reasoning (self-hosted end to end, and edge traffic stays inspectable for a future IDS/IPS).
+Chosen over a Cloudflare tunnel/proxy on purpose; see [`02-networking-dns.md`](02-networking-dns.md) for the reasoning (self-hosted end to end, and edge traffic stays inspectable for a future IDS/IPS).
 
 - `mosearc.eu` / `www.mosearc.eu` are **grey-cloud** A records, kept on the home IP by the DDNS updater.
 - Router forwards **TCP 80 and 443** → `10.77.0.101`.
-- **Caddy** serves the static files and obtains/renews a **Let's Encrypt** certificate automatically — no certbot, no manual renewal. HTTPS is terminated on the box, by us.
+- **Caddy** serves the static files and obtains/renews a **Let's Encrypt** certificate automatically: no certbot, no manual renewal. HTTPS is terminated on the box, by us.
 
-Caddyfile is dead simple — naming the domains is what triggers automatic TLS:
+Caddyfile is dead simple; naming the domains is what triggers automatic TLS:
 
 ```
 {
@@ -23,7 +23,7 @@ mosearc.eu, www.mosearc.eu {
 }
 ```
 
-Fallback if a residential ISP blocks inbound 80/443: switch Caddy to the ACME **DNS-01** challenge via the Cloudflare token (certs with no inbound ports). Not needed here — 80/443 were open.
+Fallback if a residential ISP blocks inbound 80/443: switch Caddy to the ACME **DNS-01** challenge via the Cloudflare token (certs with no inbound ports). Not needed here: 80/443 were open.
 
 ## CI/CD: self-hosted GitHub Actions runner
 
@@ -36,9 +36,9 @@ git push origin main
    → Caddy serves it immediately
 ```
 
-- Runner runs as a non-root `deploy` user that owns `/var/www/portfolio` (installed with `./svc.sh install deploy` — root installs the systemd unit, the runner process itself runs as `deploy`).
-- Workflow triggers on **push to `main` only** (never on pull requests) — defense in depth, since the runner executes repo code inside the home network.
-- **The site repo is private** for the same reason; the public showcase is this separate `homelab` repo. (The site repo is `mosearc.github.io` — going private disables free GitHub Pages at that URL, which is fine since the site is self-hosted at `mosearc.eu`.)
+- Runner runs as a non-root `deploy` user that owns `/var/www/portfolio` (installed with `./svc.sh install deploy`: root installs the systemd unit, the runner process itself runs as `deploy`).
+- Workflow triggers on **push to `main` only** (never on pull requests) as defense in depth, since the runner executes repo code inside the home network.
+- **The site repo is private** for the same reason; the public showcase is this separate `homelab` repo. (The site repo is `mosearc.github.io`; going private disables free GitHub Pages at that URL, which is fine since the site is self-hosted at `mosearc.eu`.)
 
 Workflow and Caddyfile live in the site repo (not committed here).
 
@@ -50,4 +50,4 @@ Workflow and Caddyfile live in the site repo (not committed here).
 - [x] Let's Encrypt TLS, live at `https://mosearc.eu`
 - [x] Self-hosted runner registered + running as `deploy`
 - [x] Deploy workflow (`push` → runner → `rsync` to web root)
-- [x] Live — real site deployed from the existing `mosearc.github.io` source on every push to `main`
+- [x] Live: real site deployed from the existing `mosearc.github.io` source on every push to `main`
